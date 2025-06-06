@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoplan.ai - Student Planner</title>
+    <title>Gplan.ai - Student Planner</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -133,8 +133,80 @@
 
         /* General styles */
         .sidebar {
-            width: 180px; /* Fixed width for sidebar */
-            transition: background-color 0.3s ease, color 0.3s ease;
+            width: 180px; /* Default width for larger screens */
+            transition: width 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.3s ease, color 0.3s ease;
+            flex-shrink: 0; /* Prevent sidebar from shrinking below its width */
+        }
+
+        /* Mobile specific sidebar */
+        @media (max-width: 767px) { /* md breakpoint for Tailwind */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -180px; /* Hidden off-screen by default */
+                height: 100%;
+                z-index: 50; /* Above main content */
+                box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+                border-radius: 0; /* Remove specific border-radius for mobile overlay */
+            }
+            .sidebar.show {
+                transform: translateX(180px); /* Slide in */
+            }
+            .main-content-area {
+                padding: 1rem; /* Smaller padding on mobile */
+            }
+            .header {
+                padding: 1rem; /* Smaller padding on mobile */
+            }
+            .quote-text {
+                font-size: 1.5rem; /* Smaller font on mobile */
+            }
+            #gplan-logo {
+                font-size: 1.25rem; /* Smaller logo on mobile */
+            }
+            .mobile-menu-btn {
+                display: block !important; /* Ensure hamburger is shown on mobile */
+            }
+            .overlay {
+                display: none; /* Default for overlay */
+                pointer-events: none; /* Do not capture clicks when hidden */
+            }
+            .overlay.show {
+                display: block !important; /* Ensure overlay is shown when sidebar is open */
+                pointer-events: auto !important; /* Capture clicks when shown */
+            }
+        }
+
+        /* Desktop specific sidebar collapsed state */
+        @media (min-width: 768px) { /* md breakpoint for Tailwind */
+            .sidebar.collapsed {
+                width: 60px; /* Collapsed width */
+            }
+            .sidebar.collapsed .nav-item span { /* Hide text */
+                display: none;
+            }
+            .sidebar.collapsed .nav-item { /* Center icon in collapsed state */
+                justify-content: center;
+                padding: 1rem 0; /* Adjust padding for collapsed state */
+            }
+            .sidebar.collapsed .nav-item i { /* Remove margin for icon in collapsed state */
+                margin-right: 0;
+            }
+            /* Adjust the desktop toggle button's color for themes */
+            .dark-theme #desktop-sidebar-toggle {
+                background-color: #4a5568;
+                color: #e2e8f0;
+            }
+            .dark-theme #desktop-sidebar-toggle:hover {
+                background-color: #6a758a;
+            }
+            .light-theme #desktop-sidebar-toggle {
+                background-color: #cbd5e0;
+                color: #2d3748;
+            }
+            .light-theme #desktop-sidebar-toggle:hover {
+                background-color: #a0aec0;
+            }
         }
 
         .nav-item {
@@ -335,13 +407,60 @@
             visibility: visible;
             opacity: 1;
         }
+
+        /* Mobile Menu Button - hidden by default on larger screens */
+        .mobile-menu-btn {
+            display: none; /* Hidden on desktop by default */
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #e2e8f0; /* Match text color */
+        }
+        .light-theme .mobile-menu-btn {
+            color: #2d3748;
+        }
+
+        /* Override Tailwind's md:hidden for mobile-menu-btn on small screens */
+        @media (max-width: 767px) {
+            .mobile-menu-btn {
+                display: block !important;
+            }
+        }
+
+        /* Overlay for mobile sidebar */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+            z-index: 40; /* Below sidebar, above main content */
+            display: none; /* Hidden by default */
+            pointer-events: none; /* Crucial: do not capture clicks when hidden */
+        }
+        /* Overlay show class */
+        .overlay.show {
+            display: block !important; /* Ensure overlay is shown when sidebar is open */
+            pointer-events: auto !important; /* Crucial: capture clicks when shown */
+        }
     </style>
 </head>
 <body class="dark-theme">
     <div class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="header sticky top-0 z-10">
-            <div id="gplan-logo" class="text-3xl font-bold">Geoplan.ai</div>
+        <header class="header sticky top-0 z-20">
+            <div class="flex items-center">
+                <button id="mobile-menu-toggle" class="mobile-menu-btn mr-4 md:hidden z-30">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <!-- Desktop Sidebar Toggle Button -->
+                <button id="desktop-sidebar-toggle" class="hidden md:block p-2 rounded-full shadow-md focus:outline-none mr-4">
+                    <i class="fas fa-chevron-left"></i> <!-- Default icon for collapsing -->
+                </button>
+                <div id="gplan-logo" class="text-3xl font-bold">Gplan.ai</div>
+            </div>
             <div class="flex items-center space-x-4">
                 <button id="theme-toggle" class="p-2 rounded-full shadow-md focus:outline-none">
                     <i class="fas fa-sun"></i> <!-- Sun icon for light theme -->
@@ -352,28 +471,31 @@
 
         <div class="flex flex-1 overflow-hidden">
             <!-- Sidebar -->
-            <aside class="sidebar w-48 p-4 flex flex-col justify-between rounded-tr-3xl rounded-br-3xl shadow-lg">
+            <aside id="sidebar" class="sidebar w-48 p-4 flex flex-col justify-between rounded-tr-3xl rounded-br-3xl shadow-lg md:relative md:translate-x-0">
                 <nav class="space-y-4">
                     <div id="nav-home" class="nav-item active-nav-item">
-                        <i class="fas fa-home"></i> Home
+                        <i class="fas fa-home"></i> <span>Home</span>
                     </div>
                     <div id="nav-academic-calendar" class="nav-item">
-                        <i class="fas fa-calendar-alt"></i> Academic Calendar
+                        <i class="fas fa-calendar-alt"></i> <span>Academic Calendar</span>
                     </div>
                     <div id="nav-schedules" class="nav-item">
-                        <i class="fas fa-clipboard-list"></i> Schedules
+                        <i class="fas fa-clipboard-list"></i> <span>Schedules</span>
                     </div>
                     <div id="nav-reminders" class="nav-item">
-                        <i class="fas fa-bell"></i> Reminders
+                        <i class="fas fa-bell"></i> <span>Reminders</span>
                     </div>
                     <div id="nav-subjects" class="nav-item">
-                        <i class="fas fa-book"></i> Subjects
+                        <i class="fas fa-book"></i> <span>Subjects</span>
                     </div>
                     <div id="nav-study-timer" class="nav-item">
-                        <i class="fas fa-stopwatch"></i> Study Timer
+                        <i class="fas fa-stopwatch"></i> <span>Study Timer</span>
                     </div>
                 </nav>
             </aside>
+
+            <!-- Overlay for mobile sidebar -->
+            <div id="overlay" class="overlay" onclick="toggleMobileMenu()"></div>
 
             <!-- Main Content Area -->
             <main id="main-content" class="main-content-area flex-1 p-8 overflow-auto">
@@ -414,6 +536,10 @@
         const navItems = document.querySelectorAll('.nav-item');
         const themeToggleBtn = document.getElementById('theme-toggle');
         const quickSchedulesBtn = document.getElementById('quick-schedules-btn');
+        const sidebar = document.getElementById('sidebar');
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const desktopSidebarToggle = document.getElementById('desktop-sidebar-toggle');
+        const overlay = document.getElementById('overlay');
 
         // --- Theme Management ---
         function applyTheme(theme) {
@@ -445,6 +571,32 @@
             }
         }
 
+        // --- Mobile Menu Toggle ---
+        function toggleMobileMenu() {
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show'); // Show/hide overlay with sidebar
+        }
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+
+        // --- Desktop Sidebar Toggle ---
+        let isSidebarCollapsed = false; // State variable for desktop sidebar
+
+        function toggleDesktopSidebar() {
+            isSidebarCollapsed = !isSidebarCollapsed;
+            if (isSidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                desktopSidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>'; // Icon for expanding
+            } else {
+                sidebar.classList.remove('collapsed');
+                desktopSidebarToggle.innerHTML = '<i class="fas fa-chevron-left"></i>'; // Icon for collapsing
+            }
+            // Ensure proper layout update after toggle for desktop
+            // In this flex setup, main-content-area will auto-adjust
+        }
+
+        desktopSidebarToggle.addEventListener('click', toggleDesktopSidebar);
+
 
         // --- Navigation Handlers ---
         function setActiveNavItem(id) {
@@ -466,25 +618,25 @@
         function loadHomePage() {
             setActiveNavItem('nav-home');
             mainContent.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-center">
-                    <h1 class="text-6xl font-bold mb-6 text-purple-600">Plan. Learn. Achieve. Succeed.</h1>
-                    <p id="motivational-quote" class="quote-text mb-12 max-w-2xl">${quotes[currentQuoteIndex]}</p>
+                <div class="flex flex-col items-center justify-center h-full text-center p-4">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6 text-purple-600">Plan. Learn. Achieve. Succeed.</h1>
+                    <p id="motivational-quote" class="quote-text mb-8 md:mb-12 max-w-2xl text-xl md:text-4xl">${quotes[currentQuoteIndex]}</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
-                        <div class="card p-6 flex flex-col items-center justify-center">
-                            <i class="fas fa-chart-line text-4xl mb-4 text-purple-500"></i>
-                            <h2 class="text-xl font-semibold mb-2">Overall Score</h2>
-                            <p class="text-5xl font-bold text-green-500">89%</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 w-full max-w-4xl">
+                        <div class="card p-4 md:p-6 flex flex-col items-center justify-center">
+                            <i class="fas fa-chart-line text-3xl md:text-4xl mb-4 text-purple-500"></i>
+                            <h2 class="text-lg md:text-xl font-semibold mb-2">Overall Score</h2>
+                            <p class="text-4xl md:text-5xl font-bold text-green-500">89%</p>
                         </div>
-                        <div class="card p-6 flex flex-col items-center justify-center">
-                            <i class="fas fa-lightbulb text-4xl mb-4 text-yellow-500"></i>
-                            <h2 class="text-xl font-semibold mb-2">Academic Suggestion</h2>
-                            <p class="text-lg">Focus on Literature this week for improvement.</p>
+                        <div class="card p-4 md:p-6 flex flex-col items-center justify-center">
+                            <i class="fas fa-lightbulb text-3xl md:text-4xl mb-4 text-yellow-500"></i>
+                            <h2 class="text-lg md:text-xl font-semibold mb-2">Academic Suggestion</h2>
+                            <p class="text-md md:text-lg">Focus on Literature this week for improvement.</p>
                         </div>
-                        <div class="card p-6 flex flex-col items-center justify-center">
-                            <i class="fas fa-calendar-check text-4xl mb-4 text-blue-500"></i>
-                            <h2 class="text-xl font-semibold mb-2">Today's Study Plan</h2>
-                            <button id="view-today-plan-btn" class="mt-4 bg-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-purple-700 transition">View Plan</button>
+                        <div class="card p-4 md:p-6 flex flex-col items-center justify-center">
+                            <i class="fas fa-calendar-check text-3xl md:text-4xl mb-4 text-blue-500"></i>
+                            <h2 class="text-lg md:text-xl font-semibold mb-2">Today's Study Plan</h2>
+                            <button id="view-today-plan-btn" class="mt-4 bg-purple-600 text-white px-4 py-2 md:px-6 md:py-3 rounded-full font-semibold hover:bg-purple-700 transition text-sm md:text-base">View Plan</button>
                         </div>
                     </div>
                 </div>
@@ -495,10 +647,10 @@
         function loadAcademicCalendarPage() {
             setActiveNavItem('nav-academic-calendar');
             mainContent.innerHTML = `
-                <h1 class="text-4xl font-bold mb-8 text-purple-600">Academic Calendar</h1>
-                <div class="card p-6">
-                    <h2 class="text-2xl font-semibold mb-4">June 2025</h2>
-                    <div class="calendar-grid">
+                <h1 class="text-3xl md:text-4xl font-bold mb-6 md:mb-8 text-purple-600">Academic Calendar</h1>
+                <div class="card p-4 md:p-6">
+                    <h2 class="text-xl md:text-2xl font-semibold mb-4">June 2025</h2>
+                    <div class="calendar-grid text-sm md:text-base">
                         <div class="font-bold">Sun</div>
                         <div class="font-bold">Mon</div>
                         <div class="font-bold">Tue</div>
@@ -542,9 +694,9 @@
                         <div class="calendar-day current-month">29</div>
                         <div class="calendar-day current-month">30</div>
                     </div>
-                    <div class="mt-8">
-                        <h3 class="text-xl font-semibold mb-2">Upcoming Deadlines:</h3>
-                        <ul class="list-disc list-inside">
+                    <div class="mt-6 md:mt-8">
+                        <h3 class="text-lg md:text-xl font-semibold mb-2">Upcoming Deadlines:</h3>
+                        <ul class="list-disc list-inside text-sm md:text-base">
                             <li>June 5: Physics Exam</li>
                             <li>June 13: Computer Science Project Due</li>
                         </ul>
@@ -556,14 +708,14 @@
         function loadSchedulesPage() {
             setActiveNavItem('nav-schedules');
             mainContent.innerHTML = `
-                <h1 class="text-4xl font-bold mb-8 text-purple-600">Schedules & To-Do List</h1>
-                <div class="card p-6 mb-8">
-                    <h2 class="text-2xl font-semibold mb-4">My To-Do List</h2>
-                    <div class="flex mb-4">
-                        <input type="text" id="new-todo-input" class="flex-1 p-3 rounded-l-lg border-2 border-gray-600 focus:outline-none focus:border-purple-500" placeholder="Add a new task...">
-                        <button id="add-todo-btn" class="bg-purple-600 text-white px-6 py-3 rounded-r-lg font-semibold hover:bg-purple-700 transition">Add Task</button>
+                <h1 class="text-3xl md:text-4xl font-bold mb-6 md:mb-8 text-purple-600">Schedules & To-Do List</h1>
+                <div class="card p-4 md:p-6 mb-8">
+                    <h2 class="text-xl md:text-2xl font-semibold mb-4">My To-Do List</h2>
+                    <div class="flex flex-col sm:flex-row mb-4">
+                        <input type="text" id="new-todo-input" class="flex-1 p-3 rounded-lg sm:rounded-r-none border-2 border-gray-600 focus:outline-none focus:border-purple-500 mb-2 sm:mb-0" placeholder="Add a new task...">
+                        <button id="add-todo-btn" class="bg-purple-600 text-white px-6 py-3 rounded-lg sm:rounded-l-none font-semibold hover:bg-purple-700 transition">Add Task</button>
                     </div>
-                    <ul id="todo-list" class="space-y-2">
+                    <ul id="todo-list" class="space-y-2 text-sm md:text-base">
                         <!-- To-do items will be rendered here by renderTodoList() -->
                     </ul>
                 </div>
@@ -580,17 +732,17 @@
         function loadRemindersPage() {
             setActiveNavItem('nav-reminders');
             mainContent.innerHTML = `
-                <h1 class="text-4xl font-bold mb-8 text-purple-600">Reminders</h1>
-                <div class="card p-6">
-                    <h2 class="text-2xl font-semibold mb-4">Set a New Reminder</h2>
-                    <div class="flex flex-col space-y-4 mb-6">
+                <h1 class="text-3xl md:text-4xl font-bold mb-6 md:mb-8 text-purple-600">Reminders</h1>
+                <div class="card p-4 md:p-6">
+                    <h2 class="text-xl md:text-2xl font-semibold mb-4">Set a New Reminder</h2>
+                    <div class="flex flex-col space-y-4 mb-6 text-sm md:text-base">
                         <input type="text" id="reminder-title" class="p-3 rounded-lg border-2 border-gray-600 focus:outline-none focus:border-purple-500" placeholder="Reminder Title">
                         <textarea id="reminder-description" class="p-3 rounded-lg border-2 border-gray-600 focus:outline-none focus:border-purple-500" rows="3" placeholder="Description (optional)"></textarea>
                         <input type="datetime-local" id="reminder-datetime" class="p-3 rounded-lg border-2 border-gray-600 focus:outline-none focus:border-purple-500">
                         <button id="add-reminder-btn" class="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Add Reminder</button>
                     </div>
-                    <h2 class="text-2xl font-semibold mb-4">My Reminders</h2>
-                    <div id="reminders-list" class="space-y-4">
+                    <h2 class="text-xl md:text-2xl font-semibold mb-4">My Reminders</h2>
+                    <div id="reminders-list" class="space-y-4 text-sm md:text-base">
                         <p class="text-gray-400">No reminders set yet. Add one above!</p>
                         <!-- Dynamic reminders will be added here -->
                     </div>
@@ -602,10 +754,10 @@
         function loadSubjectsPage() {
             setActiveNavItem('nav-subjects');
             mainContent.innerHTML = `
-                <h1 class="text-4xl font-bold mb-8 text-purple-600">Subjects & Grades</h1>
-                <div class="card p-6">
-                    <h2 class="text-2xl font-semibold mb-4">My Academic Performance</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="subjects-container">
+                <h1 class="text-3xl md:text-4xl font-bold mb-6 md:mb-8 text-purple-600">Subjects & Grades</h1>
+                <div class="card p-4 md:p-6">
+                    <h2 class="text-xl md:text-2xl font-semibold mb-4">My Academic Performance</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6" id="subjects-container">
                         <!-- Subjects will be loaded here -->
                     </div>
                 </div>
@@ -616,16 +768,16 @@
         function loadStudyTimerPage() {
             setActiveNavItem('nav-study-timer');
             mainContent.innerHTML = `
-                <h1 class="text-4xl font-bold mb-8 text-purple-600">Study Timer (Pomodoro)</h1>
-                <div class="card p-6 text-center">
-                    <p class="text-lg mb-4">Focus for 25 minutes, then take a 5-minute break.</p>
-                    <div id="timer-display" class="text-green-500">25:00</div>
-                    <div id="timer-controls">
-                        <button id="start-timer-btn" class="bg-green-600 text-white">Start</button>
-                        <button id="pause-timer-btn" class="bg-yellow-600 text-white">Pause</button>
-                        <button id="reset-timer-btn" class="bg-gray-600 text-white">Reset</button>
+                <h1 class="text-3xl md:text-4xl font-bold mb-6 md:mb-8 text-purple-600">Study Timer (Pomodoro)</h1>
+                <div class="card p-4 md:p-6 text-center">
+                    <p class="text-sm md:text-lg mb-4">Focus for 25 minutes, then take a 5-minute break.</p>
+                    <div id="timer-display" class="text-4xl md:text-6xl font-bold text-green-500">25:00</div>
+                    <div id="timer-controls" class="flex flex-wrap justify-center mt-4">
+                        <button id="start-timer-btn" class="bg-green-600 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg font-semibold m-1">Start</button>
+                        <button id="pause-timer-btn" class="bg-yellow-600 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg font-semibold m-1">Pause</button>
+                        <button id="reset-timer-btn" class="bg-gray-600 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg font-semibold m-1">Reset</button>
                     </div>
-                    <p id="timer-status" class="mt-4 text-xl font-semibold"></p>
+                    <p id="timer-status" class="mt-4 text-md md:text-xl font-semibold"></p>
                 </div>
             `;
             initStudyTimer();
@@ -652,9 +804,9 @@
                     }
 
                     subjectCard.innerHTML = `
-                        <h3 class="text-xl font-semibold mb-2">${subject.name}</h3>
-                        <p class="text-6xl font-bold ${gradeColor}">${subject.grade}</p>
-                        <p class="text-sm mt-2 text-gray-400">${subject.description}</p>
+                        <h3 class="text-lg md:text-xl font-semibold mb-2">${subject.name}</h3>
+                        <p class="text-5xl md:text-6xl font-bold ${gradeColor}">${subject.grade}</p>
+                        <p class="text-xs md:text-sm mt-2 text-gray-400">${subject.description}</p>
                     `;
                     subjectsContainer.appendChild(subjectCard);
                 });
@@ -671,7 +823,7 @@
                     listItem.className = `flex items-center justify-between p-3 rounded-lg ${item.completed ? 'completed' : ''}`;
                     listItem.innerHTML = `
                         <div class="flex items-center">
-                            <input type="checkbox" data-id="${item.id}" ${item.completed ? 'checked' : ''} class="mr-3 h-5 w-5 text-purple-600 rounded focus:ring-purple-500">
+                            <input type="checkbox" data-id="${item.id}" ${item.completed ? 'checked' : ''} class="mr-3 h-4 w-4 md:h-5 md:w-5 text-purple-600 rounded focus:ring-purple-500">
                             <span>${item.text}</span>
                         </div>
                         <button data-id="${item.id}" class="delete-todo-btn">Delete</button>
@@ -766,11 +918,11 @@
 
                     reminderDiv.innerHTML = `
                         <div class="flex justify-between items-center">
-                            <h3 class="text-xl font-semibold text-purple-500">${reminder.title}</h3>
+                            <h3 class="text-lg md:text-xl font-semibold text-purple-500">${reminder.title}</h3>
                             <button data-id="${reminder.id}" class="delete-todo-btn">Delete</button>
                         </div>
-                        <p class="text-sm text-gray-400">${formattedDate}</p>
-                        ${reminder.description ? `<p>${reminder.description}</p>` : ''}
+                        <p class="text-xs md:text-sm text-gray-400">${formattedDate}</p>
+                        ${reminder.description ? `<p class="text-sm md:text-base">${reminder.description}</p>` : ''}
                     `;
                     remindersListElement.appendChild(reminderDiv);
                 });
@@ -880,6 +1032,37 @@
         document.getElementById('nav-study-timer').addEventListener('click', loadStudyTimerPage);
 
         quickSchedulesBtn.addEventListener('click', loadSchedulesPage); // Quick access schedules
+
+        // Hide sidebar and overlay when a nav item is clicked on mobile
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Only hide if sidebar is currently visible (i.e., on mobile)
+                if (window.innerWidth < 768) { // md breakpoint for Tailwind
+                    toggleMobileMenu();
+                }
+            });
+        });
+
+        // Initial setup based on screen size (ensure correct sidebar state on load)
+        function initializeSidebarStateOnLoad() {
+            if (window.innerWidth >= 768) { // Desktop view
+                sidebar.classList.remove('show'); // Ensure mobile show class is off
+                overlay.classList.remove('show'); // Ensure overlay is off
+                if (desktopSidebarToggle) { // Ensure desktop toggle is visible
+                   desktopSidebarToggle.style.display = ''; // Reset display style if it was set to none
+                }
+            } else { // Mobile view
+                sidebar.classList.remove('collapsed'); // Ensure desktop collapsed class is off
+                // Ensure desktop toggle button is hidden on mobile
+                if (desktopSidebarToggle) { // Check if element exists before modifying style
+                   desktopSidebarToggle.style.display = 'none';
+                }
+            }
+        }
+
+        // Call on load and on window resize
+        window.addEventListener('load', initializeSidebarStateOnLoad);
+        window.addEventListener('resize', initializeSidebarStateOnLoad); // Re-evaluate on resize
 
         // Initial load of the home page
         loadHomePage();
